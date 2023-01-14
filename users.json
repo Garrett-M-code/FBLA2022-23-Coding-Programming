@@ -1,0 +1,12 @@
+[
+    {
+        "username": "",
+        "password": "",
+        "name": "",
+        "grade": 0,
+        "elo": 0,
+        "visited_events": [],
+        "wishlisted_events": [],
+        "user_ID": []
+    }
+]
