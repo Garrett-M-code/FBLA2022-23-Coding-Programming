@@ -3,9 +3,7 @@ var button = document.querySelector("button");
 button.style.cursor = "pointer";
 button.addEventListener("click", createUser , false);
 
-
 async function createUser() {
-    // TODO: Add the user input fields when implementing.
     var userNameInput = document.querySelector("#usernameInput").value;
     var passwordInput = document.querySelector("#passwordInput").value;
 
@@ -15,7 +13,7 @@ async function createUser() {
         // TODO: Make a pop-up instead
         alert("Please fill all fields in!");
 
-        userNameInput.value = "";
+        usernameInput.value = "";
         passwordInput.value = "";
         return;
 
@@ -23,29 +21,26 @@ async function createUser() {
         // TODO: Make a pop-up instead
         alert("That username is currently in use. Please select a new username.");
 
-        userNameInput.value = "";
+        usernameInput.value = "";
         passwordInput.value = "";
         return;
     }
 
-    // TODO: Add the user to JSON
-    var createdUser =  {
-        "username": userNameInput.value,
-        "password": passwordInput,
-        "name": "",
-        "grade": 0,
-        "elo": 0,
-        "visited_events": [],
-        "wishlisted_events": [],
-        "user_ID": []
-    }
-    createdUser = JSON.stringify(createdUser);
-
-    // TODO: Redirect the user to the home page
-
+    // Disables fields as a safeguard
     button.removeEventListener("click", createUser , false);
     button.disabled = true;
 
+    // Add encrypted password
+    let encryptedPassword = await encryptData(passwordInput);
+
+    // Gets the length of the user list
+    let listUsers = await loadData("/json/users.json");
+    let listUsersLength = listUsers.length;
+
+    // Redirects to the second signup page using a query
+    window.location = 'http://localhost:8080/finishSignup.html?username=' +
+        userNameInput + '&password=' + encryptedPassword +
+        "&userslistLength=" + listUsersLength;
 }
 
 function loginUser() {
@@ -58,15 +53,11 @@ function loginUser() {
 async function checkUsername(newUsername) {
     // Checks to make sure a username is not currently in use.
     var usernameMatch = false;
+    var jsonData = await loadData("/json/users.json");
 
-    var jsonData = await loadData("users.json");
-
-    alert("Made it");
-
-    console.log(jsonData);
     // Cycles through the dictionaries
     for (var i = 0; i < jsonData.length; i++) {
-        if ((jsonData[0])["username"] === newUsername) {
+        if ((jsonData[i])["username"] === newUsername) {
             usernameMatch = true;
         }
     }
@@ -82,15 +73,12 @@ async function loadData(filename) {
             return resp.json();
         })
         .then(function (data) {
-            console.log(data);
             this.jsonData = data;
         })
         .catch(function (error) {
             console.error("Something went wrong!");
             console.error(error);
         });
-
-    console.log(this.jsonData);
     return this.jsonData;
 }
 
@@ -99,7 +87,27 @@ function editUser() {
 
 }
 
-function encryptData() {
-    // Ecrypts peices of data so that user's privacy can be respected.
+async function encryptData(password) {
+    let encryptedPassword;
 
+    await digestMessage(password)
+        .then( function (digestHex){
+            this.encryptedPassword = digestHex;
+        });
+    return this.encryptedPassword;
 }
+
+async function digestMessage(message) {
+    // Creates hashs for the password encrypt
+
+    const msgUint8 = new TextEncoder().encode(message);
+    // encode as (utf-8) Uint8Array
+    const hashBuffer = await crypto.subtle.digest('SHA-256', msgUint8);
+    // hash the message
+    const hashArray = Array.from(new Uint8Array(hashBuffer));
+    // convert buffer to byte array
+    const hashHex = hashArray.map((b) => b.toString(16).padStart(2, '0')).join('');
+    // convert bytes to hex string
+    return hashHex;
+}
+
